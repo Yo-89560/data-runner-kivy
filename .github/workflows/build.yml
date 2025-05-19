@@ -1,0 +1,45 @@
+name: Build APK with Buildozer
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v3
+
+      - name: Instalar dependencias
+        run: |
+          sudo apt update
+          sudo apt install -y zip unzip git python3 python3-pip build-essential \
+            libffi-dev libssl-dev libpng-dev libjpeg-dev libxml2-dev libxslt1-dev \
+            zlib1g-dev libncurses5 libncurses5-dev libtinfo5 libsqlite3-dev \
+            libgstreamer1.0 libgstreamer1.0-dev gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav openjdk-17-jdk
+
+          pip install --upgrade pip
+          pip install buildozer cython
+
+      - name: Inicializar buildozer
+        run: |
+          buildozer init
+          sed -i 's/; android.permissions = INTERNET/android.permissions = INTERNET/' buildozer.spec
+          sed -i 's/source.include_exts = py, png, jpg, kv, atlas/source.include_exts = py, json, png, jpg, kv, atlas/' buildozer.spec
+          sed -i 's/title = myapp/title = Data Runner/' buildozer.spec
+          sed -i 's/package.name = myapp/package.name = datarunner/' buildozer.spec
+          sed -i 's/package.domain = org.test/package.domain = org.example/' buildozer.spec
+
+      - name: Compilar APK
+        run: buildozer android debug
+
+      - name: Subir APK como artefacto
+        uses: actions/upload-artifact@v3
+        with:
+          name: data-runner-apk
+          path: bin/*.apk
